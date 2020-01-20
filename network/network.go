@@ -12,6 +12,7 @@ const hiddenLayerIs2 = 2
 const outputLayerIs1 = 1
 
 type Xor struct {
+	Input   mat.Matrix
 	HiddenW mat.Matrix
 	HiddenB mat.Matrix
 	OutW    mat.Matrix
@@ -22,14 +23,20 @@ type Xor struct {
 func NewXor() *Xor {
 	rand.Seed(time.Now().UnixNano())
 	return &Xor{
+		Input: mat.NewDense(1, inputLayerIs2, nil),
+
 		HiddenW: mat.NewDense(inputLayerIs2, hiddenLayerIs2,
 			[]float64{rand.Float64(), rand.Float64(), rand.Float64(), rand.Float64()}),
+
 		HiddenB: mat.NewDense(1, hiddenLayerIs2,
 			[]float64{rand.Float64(), rand.Float64()}),
+
 		OutW: mat.NewDense(hiddenLayerIs2, outputLayerIs1,
 			[]float64{rand.Float64(), rand.Float64()}),
+
 		OutB: mat.NewDense(1, outputLayerIs1,
 			[]float64{rand.Float64()}),
+
 		Data: [][][]float64{
 			{{0, 0}, {0}},
 			{{1, 0}, {1}},
@@ -40,9 +47,8 @@ func NewXor() *Xor {
 }
 
 func (x *Xor) ForwardProp(input []float64) float64 {
-	inputMat := mat.NewDense(1, hiddenLayerIs2, input)
 	hiddenActivation := mat.NewDense(1, hiddenLayerIs2, nil)
-	hiddenActivation.Mul(inputMat, x.HiddenW)
+	hiddenActivation.Mul(x.Input, x.HiddenW)
 	hiddenActivation.Add(x.HiddenB, hiddenActivation)
 	hiddenOutput := mat.NewDense(1, hiddenLayerIs2, nil)
 	hiddenOutput.Apply(sigmoidMat, hiddenActivation)
