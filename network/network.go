@@ -12,12 +12,13 @@ const hiddenLayerIs2 = 2
 const outputLayerIs1 = 1
 
 type Xor struct {
-	Input   mat.Matrix
-	HiddenW mat.Matrix
-	HiddenB mat.Matrix
-	OutW    mat.Matrix
-	OutB    mat.Matrix
-	Data    [][][]float64
+	Input        *mat.Dense
+	HiddenW      *mat.Dense
+	HiddenB      *mat.Dense
+	HiddenErrorW *mat.Dense
+	OutW         *mat.Dense
+	OutB         *mat.Dense
+	Data         [][][]float64
 }
 
 func NewXor() *Xor {
@@ -30,6 +31,8 @@ func NewXor() *Xor {
 
 		HiddenB: mat.NewDense(1, hiddenLayerIs2,
 			[]float64{rand.Float64(), rand.Float64()}),
+
+		HiddenErrorW: mat.NewDense(0, 0, nil),
 
 		OutW: mat.NewDense(hiddenLayerIs2, outputLayerIs1,
 			[]float64{rand.Float64(), rand.Float64()}),
@@ -60,4 +63,10 @@ func (x *Xor) ForwardProp(input []float64) float64 {
 	predicted.Apply(sigmoidMat, outputActivation)
 
 	return predicted.At(0, 0)
+}
+
+func (x *Xor) BackProp(forwardOutput, target float64) {
+	calculatedError := squareError(target, forwardOutput)
+	derivedError := sigmoidDerivative(forwardOutput) * calculatedError
+	x.HiddenErrorW.
 }

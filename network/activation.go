@@ -17,3 +17,7 @@ func sigmoid(x float64) float64 {
 func sigmoidDerivative(x float64) float64 {
 	return x * (1 - x)
 }
+
+func squareError(desired, actual float64) float64 {
+	return 0.5 * math.Pow(desired-actual, 2)
+}
