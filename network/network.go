@@ -12,19 +12,28 @@ const hiddenLayerIs2 = 2
 const outputLayerIs1 = 1
 
 type Xor struct {
-	Input        *mat.Dense
-	HiddenW      *mat.Dense
-	HiddenB      *mat.Dense
-	HiddenErrorW *mat.Dense
-	OutW         *mat.Dense
-	OutB         *mat.Dense
-	Data         [][][]float64
+	Input            *mat.Dense
+	HiddenW          *mat.Dense
+	HiddenB          *mat.Dense
+	HiddenErrorW     *mat.Dense
+	HiddenOutput     *mat.Dense
+	DerivedHidden    *mat.Dense
+	OutW             *mat.Dense
+	OutB             *mat.Dense
+	Predicted        *mat.Dense
+	DerivedPredicted *mat.Dense
+	Target           *mat.Dense
+	Error            *mat.Dense
 }
 
 func NewXor() *Xor {
 	rand.Seed(time.Now().UnixNano())
 	return &Xor{
-		Input: mat.NewDense(1, inputLayerIs2, nil),
+		Input: mat.NewDense(4, inputLayerIs2,
+			[]float64{0, 0, 1, 1, 0, 1, 1, 0}),
+
+		Target: mat.NewDense(4, 1,
+			[]float64{0, 0, 1, 1}),
 
 		HiddenW: mat.NewDense(inputLayerIs2, hiddenLayerIs2,
 			[]float64{rand.Float64(), rand.Float64(), rand.Float64(), rand.Float64()}),
@@ -32,7 +41,11 @@ func NewXor() *Xor {
 		HiddenB: mat.NewDense(1, hiddenLayerIs2,
 			[]float64{rand.Float64(), rand.Float64()}),
 
-		HiddenErrorW: mat.NewDense(0, 0, nil),
+		HiddenErrorW: mat.NewDense(1, 1, nil),
+
+		DerivedHidden: mat.NewDense(1, 1, nil),
+
+		HiddenOutput: mat.NewDense(4, hiddenLayerIs2, nil),
 
 		OutW: mat.NewDense(hiddenLayerIs2, outputLayerIs1,
 			[]float64{rand.Float64(), rand.Float64()}),
@@ -40,33 +53,57 @@ func NewXor() *Xor {
 		OutB: mat.NewDense(1, outputLayerIs1,
 			[]float64{rand.Float64()}),
 
-		Data: [][][]float64{
-			{{0, 0}, {0}},
-			{{1, 0}, {1}},
-			{{0, 1}, {1}},
-			{{1, 1}, {0}},
-		},
+		Predicted: mat.NewDense(4, 1, nil),
+
+		DerivedPredicted: mat.NewDense(4, 1, nil),
+
+		Error: mat.NewDense(4, 1, nil),
 	}
 }
 
-func (x *Xor) ForwardProp(input []float64) float64 {
-	hiddenActivation := mat.NewDense(1, hiddenLayerIs2, nil)
-	hiddenActivation.Mul(x.Input, x.HiddenW)
-	hiddenActivation.Add(x.HiddenB, hiddenActivation)
-	hiddenOutput := mat.NewDense(1, hiddenLayerIs2, nil)
-	hiddenOutput.Apply(sigmoidMat, hiddenActivation)
+func (x *Xor) ForwardProp(input *mat.Dense) mat.Dense {
+	if input == nil {
+		input = x.Input
+	}
+
+	hiddenActivation := mat.NewDense(4, hiddenLayerIs2, nil)
+	hiddenActivation.Mul(input, x.HiddenW)
+	hiddenActivation.Apply(func(i, j int, v float64) float64 {
+		return v + x.HiddenB.At(0, 0)
+	}, hiddenActivation)
+	x.HiddenOutput.Apply(sigmoidMat, hiddenActivation)
 
 	outputActivation := mat.NewDense(1, outputLayerIs1, nil)
-	outputActivation.Mul(hiddenOutput, x.OutW)
+	outputActivation.Mul(x.HiddenOutput, x.OutW)
 	outputActivation.Add(x.OutB, outputActivation)
-	predicted := mat.NewDense(1, outputLayerIs1, nil)
-	predicted.Apply(sigmoidMat, outputActivation)
+	x.Predicted.Apply(sigmoidMat, outputActivation)
 
-	return predicted.At(0, 0)
+	return *x.Predicted
 }
 
-func (x *Xor) BackProp(forwardOutput, target float64) {
-	calculatedError := squareError(target, forwardOutput)
-	derivedError := sigmoidDerivative(forwardOutput) * calculatedError
-	x.HiddenErrorW.
+func (x *Xor) BackProp(lr float64) {
+	x.Error.Add(x.Error, x.Predicted)
+	x.DerivedPredicted.Apply(sigmoidDerivativeMat, x.DerivedPredicted)
+	x.DerivedPredicted.MulElem(x.Error, x.DerivedPredicted)
+
+	x.HiddenErrorW.Mul(x.DerivedPredicted, x.OutW.T())
+	temp := mat.DenseCopyOf(x.HiddenOutput)
+	temp.Apply(sigmoidDerivativeMat, temp)
+	x.DerivedHidden.MulElem(x.HiddenErrorW, temp)
+
+	temp = x.HiddenOutput.T().(*mat.Dense)
+	temp.Mul(temp, x.DerivedPredicted)
+	temp.Scale(lr, temp)
+	x.OutW.Add(temp, x.OutW)
+	temp = matrixSum(x.DerivedPredicted)
+	temp.Scale(lr, temp)
+	x.OutB.Add(x.OutB, matrixSum(x.DerivedPredicted))
+}
+
+func matrixSum(dense *mat.Dense) *mat.Dense {
+	var sum float64
+	for _, w := range dense.RawMatrix().Data {
+		sum += w
+	}
+	return mat.NewDense(1, 1, []float64{sum})
 }

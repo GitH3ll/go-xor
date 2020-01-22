@@ -8,5 +8,6 @@ import (
 
 func main() {
 	xor := network.NewXor()
-	fmt.Println(xor.ForwardProp([]float64{0, 0}))
+	fmt.Println(xor.ForwardProp(nil))
+	xor.BackProp(0.1)
 }
