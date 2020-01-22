@@ -66,22 +66,26 @@ func (x *Xor) ForwardProp(input *mat.Dense) mat.Dense {
 		input = x.Input
 	}
 
-	hiddenActivation := mat.NewDense(4, hiddenLayerIs2, nil)
+	var hiddenActivation mat.Dense
 	hiddenActivation.Mul(input, x.HiddenW)
 	hiddenActivation.Apply(func(i, j int, v float64) float64 {
 		return v + x.HiddenB.At(0, 0)
-	}, hiddenActivation)
-	x.HiddenOutput.Apply(sigmoidMat, hiddenActivation)
+	}, &hiddenActivation)
+	x.HiddenOutput.Apply(sigmoidMat, &hiddenActivation)
 
-	outputActivation := mat.NewDense(1, outputLayerIs1, nil)
+	var outputActivation mat.Dense
 	outputActivation.Mul(x.HiddenOutput, x.OutW)
-	outputActivation.Add(x.OutB, outputActivation)
-	x.Predicted.Apply(sigmoidMat, outputActivation)
+	outputActivation.Apply(func(i, j int, v float64) float64 {
+		return v + x.OutB.At(0, 0)
+	}, &outputActivation)
+	x.Predicted.Apply(sigmoidMat, &outputActivation)
 
 	return *x.Predicted
 }
 
 func (x *Xor) BackProp(lr float64) {
+	x.HiddenErrorW.Reset()
+	x.DerivedHidden.Reset()
 	x.Error.Add(x.Error, x.Predicted)
 	x.DerivedPredicted.Apply(sigmoidDerivativeMat, x.DerivedPredicted)
 	x.DerivedPredicted.MulElem(x.Error, x.DerivedPredicted)
