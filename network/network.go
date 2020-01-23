@@ -1,6 +1,7 @@
 package network
 
 import (
+	"log"
 	"math/rand"
 	"time"
 
@@ -84,26 +85,15 @@ func (x *Xor) ForwardProp(input *mat.Dense) mat.Dense {
 }
 
 func (x *Xor) BackProp(lr float64) {
-	x.HiddenErrorW.Reset()
-	x.DerivedHidden.Reset()
-	x.Error.Add(x.Error, x.Predicted)
-	x.DerivedPredicted.Apply(sigmoidDerivativeMat, x.DerivedPredicted)
-	x.DerivedPredicted.MulElem(x.Error, x.DerivedPredicted)
+	print(x.Target)
 
-	x.HiddenErrorW.Mul(x.DerivedPredicted, x.OutW.T())
-	temp := mat.DenseCopyOf(x.HiddenOutput)
-	temp.Apply(sigmoidDerivativeMat, temp)
-	x.DerivedHidden.MulElem(x.HiddenErrorW, temp)
+	x.Error.Apply(func(i, j int, v float64) float64 {
+		return squareError(x.Target.At(i, j), x.Predicted.At(i, j))
+	}, x.Error)
 
-	temp = x.HiddenOutput.T().(*mat.Dense)
-	temp.Mul(temp, x.DerivedPredicted)
-	temp.Scale(lr, temp)
-	x.OutW.Add(temp, x.OutW)
-	temp = matrixSum(x.DerivedPredicted)
-	temp.Scale(lr, temp)
-	x.OutB.Add(x.OutB, matrixSum(x.DerivedPredicted))
+	log.Println(x.Error)
+	log.Println(x.Target)
 }
-
 func matrixSum(dense *mat.Dense) *mat.Dense {
 	var sum float64
 	for _, w := range dense.RawMatrix().Data {
