@@ -42,9 +42,9 @@ func NewXor() *Xor {
 		HiddenB: mat.NewDense(1, hiddenLayerIs2,
 			[]float64{rand.Float64(), rand.Float64()}),
 
-		HiddenErrorW: mat.NewDense(1, 1, nil),
+		HiddenErrorW: &mat.Dense{},
 
-		DerivedHidden: mat.NewDense(1, 1, nil),
+		DerivedHidden: &mat.Dense{},
 
 		HiddenOutput: mat.NewDense(4, hiddenLayerIs2, nil),
 
@@ -94,6 +94,8 @@ func (x *Xor) BackProp(lr float64) {
 	temp := mat.DenseCopyOf(x.Predicted)
 	temp.Apply(sigmoidDerivativeMat, temp)
 	x.DerivedPredicted.MulElem(x.Error, temp)
+
+	x.HiddenErrorW.Mul(x.Predicted, x.OutW.T())
 
 	log.Println(x.Error)
 	log.Println(x.Target)
