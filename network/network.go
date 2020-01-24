@@ -91,6 +91,10 @@ func (x *Xor) BackProp(lr float64) {
 		return squareError(x.Target.At(i, j), x.Predicted.At(i, j))
 	}, x.Error)
 
+	temp := mat.DenseCopyOf(x.Predicted)
+	temp.Apply(sigmoidDerivativeMat, temp)
+	x.DerivedPredicted.MulElem(x.Error, temp)
+
 	log.Println(x.Error)
 	log.Println(x.Target)
 }
