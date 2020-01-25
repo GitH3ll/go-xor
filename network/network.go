@@ -14,6 +14,7 @@ const outputLayerIs1 = 1
 
 type Xor struct {
 	Input            *mat.Dense
+	Target           *mat.Dense
 	HiddenW          *mat.Dense
 	HiddenB          *mat.Dense
 	HiddenErrorW     *mat.Dense
@@ -23,7 +24,6 @@ type Xor struct {
 	OutB             *mat.Dense
 	Predicted        *mat.Dense
 	DerivedPredicted *mat.Dense
-	Target           *mat.Dense
 	Error            *mat.Dense
 }
 
@@ -62,7 +62,7 @@ func NewXor() *Xor {
 	}
 }
 
-func (x *Xor) ForwardProp(input *mat.Dense) mat.Dense {
+func (x *Xor) ForwardProp(input *mat.Dense) *mat.Dense {
 	if input == nil {
 		input = x.Input
 	}
@@ -81,7 +81,7 @@ func (x *Xor) ForwardProp(input *mat.Dense) mat.Dense {
 	}, &outputActivation)
 	x.Predicted.Apply(sigmoidMat, &outputActivation)
 
-	return *x.Predicted
+	return mat.DenseCopyOf(x.Predicted)
 }
 
 func (x *Xor) BackProp(lr float64) {
@@ -97,9 +97,22 @@ func (x *Xor) BackProp(lr float64) {
 
 	x.HiddenErrorW.Mul(x.Predicted, x.OutW.T())
 
+	temp = mat.DenseCopyOf(x.HiddenOutput)
+	temp.Apply(sigmoidDerivativeMat, temp)
+	x.DerivedHidden.MulElem(x.HiddenErrorW, temp)
+
 	log.Println(x.Error)
 	log.Println(x.Target)
+	log.Println(x.DerivedPredicted)
+	log.Println(x.DerivedHidden)
 }
+
+func (x *Xor) UpdateWeights() {
+	t := mat.DenseCopyOf(x.HiddenOutput.T())
+	log.Println(t)
+	//x.OutW.Add()
+}
+
 func matrixSum(dense *mat.Dense) *mat.Dense {
 	var sum float64
 	for _, w := range dense.RawMatrix().Data {

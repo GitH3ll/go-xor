@@ -10,4 +10,5 @@ func main() {
 	xor := network.NewXor()
 	fmt.Println(xor.ForwardProp(nil))
 	xor.BackProp(0.1)
+	xor.UpdateWeights()
 }
