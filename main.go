@@ -1,14 +1,13 @@
 package main
 
 import (
-	"fmt"
+	"log"
 
 	"github.com/GitH3ll/go-xor/network"
 )
 
 func main() {
 	xor := network.NewXor()
-	fmt.Println(xor.ForwardProp(nil))
-	xor.BackProp(0.1)
-	xor.UpdateWeights()
+	xor.Train(100000, 0.05)
+	log.Println(xor.ForwardProp().RawMatrix().Data)
 }

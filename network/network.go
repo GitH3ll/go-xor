@@ -1,7 +1,6 @@
 package network
 
 import (
-	"log"
 	"math/rand"
 	"time"
 
@@ -31,10 +30,10 @@ func NewXor() *Xor {
 	rand.Seed(time.Now().UnixNano())
 	return &Xor{
 		Input: mat.NewDense(4, inputLayerIs2,
-			[]float64{0, 0, 1, 1, 0, 1, 1, 0}),
+			[]float64{0, 0, 0, 1, 1, 0, 1, 1}),
 
 		Target: mat.NewDense(4, 1,
-			[]float64{0, 0, 1, 1}),
+			[]float64{0, 1, 1, 0}),
 
 		HiddenW: mat.NewDense(inputLayerIs2, hiddenLayerIs2,
 			[]float64{rand.Float64(), rand.Float64(), rand.Float64(), rand.Float64()}),
@@ -62,13 +61,17 @@ func NewXor() *Xor {
 	}
 }
 
-func (x *Xor) ForwardProp(input *mat.Dense) *mat.Dense {
-	if input == nil {
-		input = x.Input
+func (x *Xor) Train(epochs int, lr float64) {
+	for i := 0; i < epochs; i++ {
+		x.ForwardProp()
+		x.BackProp()
+		x.UpdateWeights(lr)
 	}
+}
 
+func (x *Xor) ForwardProp() *mat.Dense {
 	var hiddenActivation mat.Dense
-	hiddenActivation.Mul(input, x.HiddenW)
+	hiddenActivation.Mul(x.Input, x.HiddenW)
 	hiddenActivation.Apply(func(i, j int, v float64) float64 {
 		return v + x.HiddenB.At(0, 0)
 	}, &hiddenActivation)
@@ -84,9 +87,10 @@ func (x *Xor) ForwardProp(input *mat.Dense) *mat.Dense {
 	return mat.DenseCopyOf(x.Predicted)
 }
 
-func (x *Xor) BackProp(lr float64) {
-	print(x.Target)
-
+func (x *Xor) BackProp() {
+	x.Error.Zero()
+	x.DerivedHidden.Zero()
+	x.DerivedPredicted.Zero()
 	x.Error.Apply(func(i, j int, v float64) float64 {
 		return squareError(x.Target.At(i, j), x.Predicted.At(i, j))
 	}, x.Error)
@@ -94,29 +98,33 @@ func (x *Xor) BackProp(lr float64) {
 	temp := mat.DenseCopyOf(x.Predicted)
 	temp.Apply(sigmoidDerivativeMat, temp)
 	x.DerivedPredicted.MulElem(x.Error, temp)
+	//fmt.Println(x.DerivedPredicted)
 
-	x.HiddenErrorW.Mul(x.Predicted, x.OutW.T())
+	x.HiddenErrorW.Mul(x.DerivedPredicted, x.OutW.T())
 
 	temp = mat.DenseCopyOf(x.HiddenOutput)
 	temp.Apply(sigmoidDerivativeMat, temp)
 	x.DerivedHidden.MulElem(x.HiddenErrorW, temp)
-
-	log.Println(x.Error)
-	log.Println(x.Target)
-	log.Println(x.DerivedPredicted)
-	log.Println(x.DerivedHidden)
 }
 
-func (x *Xor) UpdateWeights() {
-	t := mat.DenseCopyOf(x.HiddenOutput.T())
-	log.Println(t)
-	//x.OutW.Add()
-}
+func (x *Xor) UpdateWeights(lr float64) {
+	temp := mat.DenseCopyOf(x.HiddenOutput.T())
+	var r mat.Dense
+	r.Mul(temp, x.DerivedPredicted)
+	r.Scale(lr, &r)
+	x.OutW.Add(x.OutW, &r)
 
-func matrixSum(dense *mat.Dense) *mat.Dense {
-	var sum float64
-	for _, w := range dense.RawMatrix().Data {
-		sum += w
-	}
-	return mat.NewDense(1, 1, []float64{sum})
+	x.OutB.Apply(func(i, j int, v float64) float64 {
+		return v + mat.Sum(x.DerivedPredicted)*lr
+	}, x.OutB)
+
+	temp = mat.DenseCopyOf(x.Input.T())
+	r.Reset()
+	r.Mul(temp, x.DerivedHidden)
+	r.Scale(lr, &r)
+	x.HiddenW.Add(x.HiddenW, &r)
+
+	x.HiddenB.Apply(func(i, j int, v float64) float64 {
+		return v + mat.Sum(x.DerivedHidden)*lr
+	}, x.HiddenB)
 }
