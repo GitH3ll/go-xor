@@ -1,7 +1,7 @@
 package main
 
 import (
-	"log"
+	"fmt"
 
 	"github.com/GitH3ll/go-xor/network"
 )
@@ -9,5 +9,6 @@ import (
 func main() {
 	xor := network.NewXor()
 	xor.Train(100000, 0.05)
-	log.Println(xor.ForwardProp().RawMatrix().Data)
+	fmt.Println(xor.ForwardProp().RawMatrix().Data)
+	fmt.Println(xor.Target.RawMatrix().Data)
 }
