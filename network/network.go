@@ -88,9 +88,6 @@ func (x *Xor) ForwardProp() *mat.Dense {
 }
 
 func (x *Xor) BackProp() {
-	x.Error.Zero()
-	x.DerivedHidden.Zero()
-	x.DerivedPredicted.Zero()
 	x.Error.Apply(func(i, j int, v float64) float64 {
 		return squareError(x.Target.At(i, j), x.Predicted.At(i, j))
 	}, x.Error)
@@ -98,7 +95,6 @@ func (x *Xor) BackProp() {
 	temp := mat.DenseCopyOf(x.Predicted)
 	temp.Apply(sigmoidDerivativeMat, temp)
 	x.DerivedPredicted.MulElem(x.Error, temp)
-	//fmt.Println(x.DerivedPredicted)
 
 	x.HiddenErrorW.Mul(x.DerivedPredicted, x.OutW.T())
 
