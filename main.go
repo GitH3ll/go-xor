@@ -8,7 +8,7 @@ import (
 
 func main() {
 	xor := network.NewXor()
-	xor.Train(100000, 0.05)
+	xor.Train(100000, 0.1)
 	fmt.Println(xor.ForwardProp().RawMatrix().Data)
 	fmt.Println(xor.Target.RawMatrix().Data)
 }
