@@ -16,9 +16,11 @@ type Xor struct {
 	Target           *mat.Dense
 	HiddenW          *mat.Dense
 	HiddenErrorW     *mat.Dense
+	HiddenActivation *mat.Dense
 	HiddenOutput     *mat.Dense
 	DerivedHidden    *mat.Dense
 	OutW             *mat.Dense
+	OutputActivation *mat.Dense
 	Predicted        *mat.Dense
 	DerivedPredicted *mat.Dense
 	Error            *mat.Dense
@@ -38,12 +40,16 @@ func NewXor() *Xor {
 
 		HiddenErrorW: &mat.Dense{},
 
+		HiddenActivation: &mat.Dense{},
+
 		DerivedHidden: &mat.Dense{},
 
 		HiddenOutput: mat.NewDense(4, hiddenLayerIs2, nil),
 
 		OutW: mat.NewDense(hiddenLayerIs2, outputLayerIs1,
 			[]float64{rand.Float64(), rand.Float64()}),
+
+		OutputActivation: &mat.Dense{},
 
 		Predicted: mat.NewDense(4, 1, nil),
 
@@ -62,13 +68,11 @@ func (x *Xor) Train(epochs int, lr float64) {
 }
 
 func (x *Xor) ForwardProp() *mat.Dense {
-	var hiddenActivation mat.Dense
-	hiddenActivation.Mul(x.Input, x.HiddenW)
-	x.HiddenOutput.Apply(sigmoidMat, &hiddenActivation)
+	x.HiddenActivation.Mul(x.Input, x.HiddenW)
+	x.HiddenOutput.Apply(sigmoidMat, x.HiddenActivation)
 
-	var outputActivation mat.Dense
-	outputActivation.Mul(x.HiddenOutput, x.OutW)
-	x.Predicted.Apply(sigmoidMat, &outputActivation)
+	x.OutputActivation.Mul(x.HiddenOutput, x.OutW)
+	x.Predicted.Apply(sigmoidMat, x.OutputActivation)
 
 	return mat.DenseCopyOf(x.Predicted)
 }
