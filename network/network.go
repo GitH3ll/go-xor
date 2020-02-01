@@ -79,7 +79,7 @@ func (x *Xor) ForwardProp() *mat.Dense {
 
 func (x *Xor) BackProp() {
 	x.Error.Apply(func(i, j int, v float64) float64 {
-		return squareError(x.Target.At(i, j), x.Predicted.At(i, j))
+		return calculateError(x.Target.At(i, j), x.Predicted.At(i, j))
 	}, x.Error)
 
 	temp := mat.DenseCopyOf(x.Predicted)
