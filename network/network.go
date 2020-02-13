@@ -61,13 +61,21 @@ func NewXor() *Xor {
 
 func (x *Xor) Train(epochs int, lr float64) {
 	for i := 0; i < epochs; i++ {
-		x.ForwardProp()
+		x.ForwardProp(nil)
 		x.BackProp()
 		x.UpdateWeights(lr)
 	}
 }
 
-func (x *Xor) ForwardProp() *mat.Dense {
+func (x *Xor) ForwardProp(input *mat.Dense) *mat.Dense {
+	if input != nil {
+		x.Input = input
+	}
+	x.HiddenActivation.Reset()
+	x.OutputActivation.Reset()
+	x.HiddenOutput.Reset()
+	x.Predicted.Reset()
+
 	x.HiddenActivation.Mul(x.Input, x.HiddenW)
 	x.HiddenOutput.Apply(sigmoidMat, x.HiddenActivation)
 
