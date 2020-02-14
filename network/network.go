@@ -7,9 +7,10 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
-const inputLayerIs2 = 2
-const hiddenLayerIs2 = 2
-const outputLayerIs1 = 1
+const inputLayer = 2
+const hiddenLayer = 2
+const outputLayer = 1
+const trainSamples = 4
 
 type Xor struct {
 	Input            *mat.Dense
@@ -29,13 +30,13 @@ type Xor struct {
 func NewXor() *Xor {
 	rand.Seed(time.Now().UnixNano())
 	return &Xor{
-		Input: mat.NewDense(4, inputLayerIs2,
+		Input: mat.NewDense(trainSamples, inputLayer,
 			[]float64{0, 0, 0, 1, 1, 0, 1, 1}),
 
-		Target: mat.NewDense(4, 1,
+		Target: mat.NewDense(trainSamples, outputLayer,
 			[]float64{0, 1, 1, 0}),
 
-		HiddenW: mat.NewDense(inputLayerIs2, hiddenLayerIs2,
+		HiddenW: mat.NewDense(inputLayer, hiddenLayer,
 			[]float64{rand.Float64(), rand.Float64(), rand.Float64(), rand.Float64()}),
 
 		HiddenErrorW: &mat.Dense{},
@@ -44,18 +45,18 @@ func NewXor() *Xor {
 
 		DerivedHidden: &mat.Dense{},
 
-		HiddenOutput: mat.NewDense(4, hiddenLayerIs2, nil),
+		HiddenOutput: mat.NewDense(trainSamples, hiddenLayer, nil),
 
-		OutW: mat.NewDense(hiddenLayerIs2, outputLayerIs1,
+		OutW: mat.NewDense(hiddenLayer, outputLayer,
 			[]float64{rand.Float64(), rand.Float64()}),
 
 		OutputActivation: &mat.Dense{},
 
-		Predicted: mat.NewDense(4, 1, nil),
+		Predicted: mat.NewDense(trainSamples, outputLayer, nil),
 
-		DerivedPredicted: mat.NewDense(4, 1, nil),
+		DerivedPredicted: mat.NewDense(trainSamples, outputLayer, nil),
 
-		Error: mat.NewDense(4, 1, nil),
+		Error: mat.NewDense(trainSamples, outputLayer, nil),
 	}
 }
 
@@ -67,9 +68,10 @@ func (x *Xor) Train(epochs int, lr float64) {
 	}
 }
 
-func (x *Xor) ForwardProp(input *mat.Dense) *mat.Dense {
-	if input != nil {
-		x.Input = input
+func (x *Xor) ForwardProp(signal []float64) *mat.Dense {
+	if signal != nil {
+		rows := len(signal) / inputLayer
+		x.Input = mat.NewDense(rows, inputLayer, signal)
 	}
 	x.HiddenActivation.Reset()
 	x.OutputActivation.Reset()
@@ -102,13 +104,13 @@ func (x *Xor) BackProp() {
 }
 
 func (x *Xor) UpdateWeights(lr float64) {
-	temp := mat.DenseCopyOf(x.HiddenOutput.T())
+	temp := x.HiddenOutput.T()
 	var r mat.Dense
 	r.Mul(temp, x.DerivedPredicted)
 	r.Scale(lr, &r)
 	x.OutW.Add(x.OutW, &r)
 
-	temp = mat.DenseCopyOf(x.Input.T())
+	temp = x.Input.T()
 	r.Reset()
 	r.Mul(temp, x.DerivedHidden)
 	r.Scale(lr, &r)
